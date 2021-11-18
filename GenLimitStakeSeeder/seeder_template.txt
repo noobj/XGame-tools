@@ -1,0 +1,23 @@
+<?php
+
+use Illuminate\Database\Seeder;
+use Casino\Services\CurrencyService;
+
+class SeedKrwLimitStakeSample extends Seeder
+{
+    /**
+     * Run the database seeds.
+     *
+     * @return void
+     */
+    public function run()
+    {
+        $currencyCode = CurrencyService::getCurrency('KRW');
+
+        if (DB::table('BaccaratLimitStakeSample')->where('Currency', $currencyCode)->exists()) {
+            DB::table('BaccaratLimitStakeSample')->where('Currency', $currencyCode)->delete();
+        }
+
+        if (DB::table('MultipleLimitStakeSample')->where('Currency', $currencyCode)->exists()) {
+            DB::table('MultipleLimitStakeSample')->where('Currency', $currencyCode)->delete();
+        }
