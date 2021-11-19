@@ -3,7 +3,7 @@
 use Illuminate\Database\Seeder;
 use Casino\Services\CurrencyService;
 
-class SeedKrwLimitStakeSample extends Seeder
+class Seed{{ currency.camel }}LimitStakeSample extends Seeder
 {
     /**
      * Run the database seeds.
@@ -12,7 +12,7 @@ class SeedKrwLimitStakeSample extends Seeder
      */
     public function run()
     {
-        $currencyCode = CurrencyService::getCurrency('KRW');
+        $currencyCode = CurrencyService::getCurrency('{{ currency.allUpper }}');
 
         if (DB::table('BaccaratLimitStakeSample')->where('Currency', $currencyCode)->exists()) {
             DB::table('BaccaratLimitStakeSample')->where('Currency', $currencyCode)->delete();
@@ -21,3 +21,14 @@ class SeedKrwLimitStakeSample extends Seeder
         if (DB::table('MultipleLimitStakeSample')->where('Currency', $currencyCode)->exists()) {
             DB::table('MultipleLimitStakeSample')->where('Currency', $currencyCode)->delete();
         }
+
+        DB::table('BaccaratLimitStakeSample')->insert([
+            {{ singleData }}
+        ]);
+
+        // MultipleLimitStakeSample
+        DB::table('MultipleLimitStakeSample')->insert([
+            {{ multipleData }}
+        ]);
+    }
+}
