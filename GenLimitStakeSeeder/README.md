@@ -15,8 +15,12 @@
 
 3. Make sure you download and rename both m and s type, and move the csv file into *csv* folder.
 
-4. Run the command with currency code, for example:
+4. Run the command with currency codes you need, for example:
 ```
-node genLimitStakeSeeder.js TWD
+node genLimitStakeSeeder.js TWD CNY
+```
+Or you call run all the currencies without any code
+```
+node genLimitStakeSeeder.js
 ```
 5. The generate seeder code will be placed in *result* folder named as currency code

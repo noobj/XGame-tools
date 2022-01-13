@@ -15,69 +15,79 @@ if (!fs.existsSync('result')){
     fs.mkdirSync('result');
 }
 
+let currencies = [];
+
 const myArgs = process.argv.slice(2);
 if (!myArgs[0]) {
-    console.log('need to assign a currency, e.g. TWD');
-    return 1;
+    console.log('Converting all currencies...');
+    currencies = ['AUD', 'CNY', 'HKD', 'IDR', 'INR', 'JPY', 'KRW', 'MYR', 'NZD', 'PHP', 'SGD', 'THB', 'TWD', 'USD', 'USDT', 'VND'];
+} else {
+    currencies = myArgs.map((args) => args.toUpperCase());
+    console.log(`Converting ${currencies}...`);
 }
 
-const currency = myArgs[0];
 const numberPattern = /\d+/g;
-const writeStream = fs.createWriteStream(path.resolve(`result/${currency}`));
-const data = {
-    currency: {
-        allUpper: currency,
-        camel: currency.toLowerCase().capitalize()
-    }
-};
 
-csv()
-.fromFile(path.resolve(`csv/s${currency}.csv`))
-.then((jsonText)=>{
-    let str;
-    jsonText.map((v) => {
-        str += '[';
-        Object.keys(v).map(key => {
-            const match = key.match(numberPattern);
-            // skip the columns with float number name
-            if (match != null && match.length > 1) return;
+Promise.all(
+    currencies.map((currency) => {
+        console.log('Converting currency');
+        const writeStream = fs.createWriteStream(path.resolve(`result/Seed${currency.toLowerCase().capitalize()}LimitStakeSample.php`));
+        const data = {
+            currency: {
+                allUpper: currency,
+                camel: currency.toLowerCase().capitalize()
+            }
+        };
 
-            // 賠率限額要用浮點數
-            const matchMaxMin = key.match(/Max|Min/g);
-            if (matchMaxMin != null) str += `\'${key}\' => \'${parseFloat(v[key]).toFixed(2)}\', `
-            else str += `\'${key}\' => \'${v[key]}\', `
-        });
+        csv()
+        .fromFile(path.resolve(`csv/s${currency}.csv`))
+        .then((jsonText)=>{
+            let str = '';
+            jsonText.map((v) => {
+                str += '[';
+                Object.keys(v).map(key => {
+                    const match = key.match(numberPattern);
+                    // skip the columns with float number name
+                    if (match != null && match.length > 1) return;
 
-        str += `\'UpdateTime\' => \'2021-11-17 14:17:03\'],`;
-    });
+                    // 賠率限額要用浮點數
+                    const matchMaxMin = key.match(/Max|Min/g);
+                    if (matchMaxMin != null) str += `\'${key}\' => \'${parseFloat(v[key]).toFixed(2)}\', `
+                    else str += `\'${key}\' => \'${v[key]}\', `
+                });
 
-    data.singleData = str;
-})
-.then(() => {
-    return csv()
-    .fromFile(path.resolve(`csv/m${currency}.csv`))
-    .then((jsonText)=>{
-        let str;
-        jsonText.map((v) => {
-            str += '[';
-            Object.keys(v).map(key => {
-                const match = key.match(numberPattern);
-                // skip the columns with float number name
-                if (match != null && match.length > 1) return;
-
-                // 賠率限額要用浮點數
-                const matchMaxMin = key.match(/Max|Min/g);
-                if (matchMaxMin != null) str += `\'${key}\' => \'${parseFloat(v[key]).toFixed(2)}\', `
-                else str += `\'${key}\' => \'${v[key]}\', `
+                str += `\'UpdateTime\' => \'2021-11-17 14:17:03\'],`;
             });
 
-            str += `\'UpdateTime\' => \'2021-11-17 14:17:03\'],`;
-        });
+            data.singleData = str;
+        })
+        .then(() => {
+            return csv()
+            .fromFile(path.resolve(`csv/m${currency}.csv`))
+            .then((jsonText)=>{
+                let str = '';
+                jsonText.map((v) => {
+                    str += '[';
+                    Object.keys(v).map(key => {
+                        const match = key.match(numberPattern);
+                        // skip the columns with float number name
+                        if (match != null && match.length > 1) return;
 
-        data.multipleData = str;
+                        // 賠率限額要用浮點數
+                        const matchMaxMin = key.match(/Max|Min/g);
+                        if (matchMaxMin != null) str += `\'${key}\' => \'${parseFloat(v[key]).toFixed(2)}\', `
+                        else str += `\'${key}\' => \'${v[key]}\', `
+                    });
+
+                    str += `\'UpdateTime\' => \'2021-11-17 14:17:03\'],`;
+                });
+
+                data.multipleData = str;
+            })
+        })
+        .then(async () => {
+            const content = await renderFile(path.resolve(`seeder_template.txt`), data);
+            writeStream.write(content);
+        })
     })
-})
-.then(async () => {
-    const content = await renderFile(path.resolve(`seeder_template.txt`), data);
-    writeStream.write(content);
-})
+).then(() => console.log('done'));
