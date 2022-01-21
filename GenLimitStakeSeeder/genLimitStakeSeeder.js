@@ -4,10 +4,13 @@ const fs = require('fs');
 const { renderFile } = require('template-file');
 const { google } = require('googleapis');
 const readline = require('readline');
+require('dotenv').config();
 
 const TOKEN_PATH = 'token.json';
-const SINGLE_TABLE_SHEET_ID = '1F8kZiO-VUKjRrnL_VNQnbx8QNdnltieIfiomuBDtef8';
-const MULTIPLE_TABLE_SHEET_ID = '14RSYTXs1YdFoI-oc-zCARwOk-JDvC3x9VrM_Ny-oQE0';
+const SINGLE_TABLE_SHEET_ID = process.env.SINGLE_TABLE_SHEET_ID;
+const MULTIPLE_TABLE_SHEET_ID = process.env.MULTIPLE_TABLE_SHEET_ID;
+const clientId = process.env.CLIENT_ID;
+const clientSecret = process.env.CLIENT_SECRET;
 
 // helper function for capitalizing the string
 Object.defineProperty(String.prototype, 'capitalize', {
@@ -22,7 +25,6 @@ if (!fs.existsSync('result')){
 }
 
 let currencies = [];
-
 const myArgs = process.argv.slice(2);
 if (!myArgs[0]) {
     console.log('Converting all currencies...');
@@ -33,8 +35,6 @@ if (!myArgs[0]) {
 }
 
 const numberPattern = /\d+/g;
-const clientId = '922193239148-29j7iiiq8dfm9vtph2iqgup1hc422fdp.apps.googleusercontent.com';
-const clientSecret = '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';
 const scopes = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
 const redirectUrl = "urn:ietf:wg:oauth:2.0:oob";
 
@@ -89,7 +89,7 @@ async function fetchData(auth) {
     });
 
     return Promise.all(
-        res.data.sheets.map(async (sheet) => {
+        res.data.sheets.map((sheet) => {
             const currency = sheet.properties.title;
             console.log(`Converting currency ${currency}`);
             const writeStream = fs.createWriteStream(path.resolve(`result/Seed${currency.toLowerCase().capitalize()}LimitStakeSample.php`));
@@ -105,36 +105,10 @@ async function fetchData(auth) {
                 range: sheet.properties.title
             })
             .then((rawData) => {
-                const data = rawData.data.values;
-                const result = [];
-                for (let i = 1; i < data.length; i++) {
-                    result[i] = {};
-                    for (let j = 0; j < data[i].length; j++) {
-                        result[i][data[0][j]] = data[i][j];
-                    }
-                }
-
-                return result;
+                return rawDataToObject(rawData)
             })
-            .then((jsonText)=>{
-                let str = '';
-                jsonText.map((v) => {
-                    str += '[';
-                    Object.keys(v).map(key => {
-                        const match = key.match(numberPattern);
-                        // skip the columns with float number name
-                        if (match != null && match.length > 1) return;
-
-                        // 賠率限額要用浮點數
-                        const matchMaxMin = key.match(/Max|Min/g);
-                        if (matchMaxMin != null) str += `\'${key}\' => \'${parseFloat(v[key]).toFixed(2)}\', `
-                        else str += `\'${key}\' => \'${v[key]}\', `
-                    });
-
-                    str += `\'UpdateTime\' => \'2021-11-17 14:17:03\'],`;
-                });
-
-                data.singleData = str;
+            .then((fetchedData)=>{
+                data.singleData = dataObjectToString(fetchedData);
             })
             .then(() => {
                 return sheets.spreadsheets.values.get({
@@ -142,36 +116,10 @@ async function fetchData(auth) {
                     range: sheet.properties.title
                 })
                 .then((rawData) => {
-                    const data = rawData.data.values;
-                    const result = [];
-                    for (let i = 1; i < data.length; i++) {
-                        result[i] = {};
-                        for (let j = 0; j < data[i].length; j++) {
-                            result[i][data[0][j]] = data[i][j];
-                        }
-                    }
-
-                    return result;
+                    return rawDataToObject(rawData);
                 })
-                .then((jsonText)=>{
-                    let str = '';
-                    jsonText.map((v) => {
-                        str += '[';
-                        Object.keys(v).map(key => {
-                            const match = key.match(numberPattern);
-                            // skip the columns with float number name
-                            if (match != null && match.length > 1) return;
-
-                            // 賠率限額要用浮點數
-                            const matchMaxMin = key.match(/Max|Min/g);
-                            if (matchMaxMin != null) str += `\'${key}\' => \'${parseFloat(v[key]).toFixed(2)}\', `
-                            else str += `\'${key}\' => \'${v[key]}\', `
-                        });
-
-                        str += `\'UpdateTime\' => \'2021-11-17 14:17:03\'],`;
-                    });
-
-                    data.multipleData = str;
+                .then((fetchedData) => {
+                    data.multipleData = dataObjectToString(fetchedData);
                 })
             })
             .then(async () => {
@@ -182,3 +130,36 @@ async function fetchData(auth) {
     ).then(() => console.log('done'));
 }
 
+function rawDataToObject(rawData) {
+    const data = rawData.data.values;
+    const result = [];
+    for (let i = 1; i < data.length; i++) {
+        result[i] = {};
+        for (let j = 0; j < data[i].length; j++) {
+            result[i][data[0][j]] = data[i][j];
+        }
+    }
+
+    return result;
+}
+
+function dataObjectToString(objData) {
+    let str = '';
+    objData.map((v) => {
+        str += '[';
+        Object.keys(v).map(key => {
+            const match = key.match(numberPattern);
+            // skip the columns with float number name
+            if (match != null && match.length > 1) return;
+
+            // 賠率限額要用浮點數
+            const matchMaxMin = key.match(/Max|Min/g);
+            if (matchMaxMin != null) str += `\'${key}\' => \'${parseFloat(v[key]).toFixed(2)}\', `
+            else str += `\'${key}\' => \'${v[key]}\', `
+        });
+
+        str += `\'UpdateTime\' => \'2021-11-17 14:17:03\'],`;
+    });
+
+    return str;
+}
