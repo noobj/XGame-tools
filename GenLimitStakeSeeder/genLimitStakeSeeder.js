@@ -56,24 +56,27 @@ function authorize() {
     });
 }
 
-async function getNewToken(auth) {
+function getNewToken(auth) {
     const url = auth.generateAuthUrl({
         access_type: 'offline',
         scope: scopes,
     });
     console.log(url);
 
-    return await new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         rl.question('Enter the code? ', (code) => {
             rl.close();
-            auth.getToken(code, (err, token) => {
-                if (err) throw 'Error while trying to retrieve access token', err;
-
+            return auth.getToken(code)
+            .then((token) => {
                 fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
                     if (err) console.error(err);
                     console.log('Token stored to', TOKEN_PATH);
                     resolve(token);
                 });
+            })
+            .catch(() => {
+                console.log('Get token error');
+                process.exit(1);
             });
         });
     });
@@ -84,8 +87,12 @@ async function fetchData(auth) {
     // Find the newest ahorro backup file
     let res = await sheets.spreadsheets.get({
         spreadsheetId: SINGLE_TABLE_SHEET_ID
-    }).catch(err => {
-        console.log(err);
+    }).catch(async (err) => {
+        console.log('fetch spread sheets error, renew the token...');
+        const token = await getNewToken(auth);
+        auth.setCredentials(token);
+        await fetchData(auth);
+        process.exit(0);
     });
 
     return Promise.all(
@@ -100,34 +107,35 @@ async function fetchData(auth) {
                 }
             };
 
-            return sheets.spreadsheets.values.get({
-                spreadsheetId: SINGLE_TABLE_SHEET_ID,
-                range: sheet.properties.title
-            })
-            .then((rawData) => {
-                return rawDataToObject(rawData)
-            })
-            .then((fetchedData)=>{
-                data.singleData = dataObjectToString(fetchedData);
-            })
-            .then(() => {
-                return sheets.spreadsheets.values.get({
-                    spreadsheetId: MULTIPLE_TABLE_SHEET_ID,
-                    range: sheet.properties.title
-                })
-                .then((rawData) => {
-                    return rawDataToObject(rawData);
-                })
-                .then((fetchedData) => {
-                    data.multipleData = dataObjectToString(fetchedData);
-                })
-            })
-            .then(async () => {
+            return Promise.all([fetchSheetToString(sheets, currency, 'single'), fetchSheetToString(sheets, currency, 'multiple')])
+            .then(async (values) => {
+                data.singleData = values[0];
+                data.multipleData = values[1];
                 const content = await renderFile(path.resolve(`seeder_template.txt`), data);
                 writeStream.write(content);
             })
         })
     ).then(() => console.log('done'));
+}
+
+function fetchSheetToString(sheets, currency, singleOrMultiple) {
+    const spreadsheetId = singleOrMultiple.toLowerCase() === 'single' ? SINGLE_TABLE_SHEET_ID : MULTIPLE_TABLE_SHEET_ID;
+    return sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: currency.toUpperCase()
+    })
+    .then((rawData) => {
+        console.log(`${currency} - ${singleOrMultiple}`)
+        return rawDataToObject(rawData)
+    })
+    .then((fetchedData)=>{
+        return dataObjectToString(fetchedData);
+    })
+    .catch((err) => {
+        console.log('fetch sheet error...');
+        console.log(err);
+        process.exit(1);
+    })
 }
 
 function rawDataToObject(rawData) {
