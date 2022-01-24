@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "declaration": true,
+        "esModuleInterop": true,
+        "removeComments": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "allowSyntheticDefaultImports": true,
+        "target": "es2017",
+        "sourceMap": true,
+        "outDir": "./GenLimitStakeSeeder/dist",
+        "baseUrl": "./",
+        "diagnostics": true,
+        "incremental": true,
+        "noImplicitReturns": true,
+        "noImplicitAny": true
+    }
+}
