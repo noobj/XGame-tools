@@ -1,11 +1,11 @@
 {
-  "name": "xgametools",
+  "name": "limit_stake_seeder_generator",
   "version": "1.0.0",
-  "description": "tools for your xgame maintenance",
+  "description": "Generate limit stake seeder from reading the google sheets",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "eslint \"*/*.ts\""
+    "lint": "eslint \"genLimitStakeSeeder.ts\""
   },
   "author": "",
   "license": "ISC",
