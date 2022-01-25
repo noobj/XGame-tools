@@ -33,33 +33,6 @@ enum SingleOrMultiple {
     Multiple
 }
 
-let currencies = [];
-const myArgs = process.argv.slice(2);
-if (!myArgs[0]) {
-    console.log('Converting all currencies...');
-    currencies = [
-        'AUD',
-        'CNY',
-        'HKD',
-        'IDR',
-        'INR',
-        'JPY',
-        'KRW',
-        'MYR',
-        'NZD',
-        'PHP',
-        'SGD',
-        'THB',
-        'TWD',
-        'USD',
-        'USDT',
-        'VND'
-    ];
-} else {
-    currencies = myArgs.map((args) => args.toUpperCase());
-    console.log(`Converting ${currencies}...`);
-}
-
 const numberPattern = /\d+/g;
 const scopes = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
 const redirectUrl = 'urn:ietf:wg:oauth:2.0:oob';
