@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "esModuleInterop": true,
+        "removeComments": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "allowSyntheticDefaultImports": true,
+        "target": "es2017",
+        "sourceMap": true,
+        "outDir": "./GenAgentInfoSeeder/dist",
+        "baseUrl": "./",
+        "diagnostics": true,
+        "incremental": true,
+        "noImplicitReturns": true,
+        "noImplicitAny": true
+    }
+}
